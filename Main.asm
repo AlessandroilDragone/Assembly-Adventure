@@ -259,6 +259,7 @@ FLoopCercaSpazioGiocatore:
 #========================================================================================
 InsertTeam:
 jal IT
+addi $sp, $sp, 4
 j InputSection
 
 IT: 
@@ -309,7 +310,7 @@ FLoopCercaSpazioTeam:
 	syscall
 	move $s1, $v0
 
-	beq $v0, $zero, FLoopInsertIDs.InsertTeamNickname
+	beq $v0, $zero, VerifyOnePlayerInTeam
 
 	li $t1, 0
 	la $t2, ArrayPlayer
@@ -330,6 +331,11 @@ FLoopCercaSpazioTeam:
 	
 	addi $t1, $t1, 1
 	j CercaIDGiocatore
+
+VerifyOnePlayerInTeam:
+	beq $t0, 0, LoopInsertIDs
+	j FLoopInsertIDs.InsertTeamNickname
+	
 
 InserisciIDGiocatoreInTeam:
 	lw $t2, TOffID1($s0)
@@ -395,18 +401,129 @@ InsertTeamNickname:
 FInsertTeamNickname:
 	lw $ra, 0($sp)
 	jr $ra
-	
+#========================================================================================
+
+#========================================================================================
+.data
+APDiag1: .asciiz "Inserisci il codice del giocatore da inserire (numero intero)"
+APDiag2: .asciiz "Inserisci il codice del team in cui inserirlo (numero intero)"
+APDiag3: .asciiz "Eseguito con Successo"
+AssignPlayer:
+	jal AP
+	addi $sp, $sp, 4
+	j InputSection
+
+AP:
+	addi $sp, $Sp, -4
+	sw $ra, 0($sp)
+
+	li $v0, 4
+	la $a0, APDiag1
+	syscall
 
 
-	
-		
+	li $v0, 5
+	syscall
+	move $s0, $v0
 
+	li $t0, 0
+	la $t1, ArrayPlayer
+	jal APloopCercaGiocatore
+
+	li $v0, 4
+	la $a0, APDiag2
+	syscall
+
+
+	li $V0, 5
+	syscall
+	move $s1, $v0
+
+	li $t0, 0
+	la $t1, ArrayTeam
+	jal APloopCercaTeam
+
+	lw $t0, TOffID1($s2)
+	beq $t0, $zero, InsertPlayerSlot1
+
+	lw $t0, TOffID2($s2)
+	beq $t0, $zero, InsertPlayerSlot2
+
+	lw $t0, TOffID3($s2)
+	beq $t0, $zero, InsertPlayerSlot3
+
+	lw $t0, TOffID4($s2)
+	beq $t0, $zero, InsertPlayerSlot4
+
+	lw $t0, TOffID5($s2)
+	beq $t0, $zero, InsertPlayerSlot5
+
+	APloopCercaGiocatore:
+	slti $t2, $t0, MaxPlayers
+	beq $t2, $zero, EAPloopCercaGiocatore
+
+	mul $t2, $t0, POff
+	add $t2, $t2, $t1
+	lw $t3, 0($t2)
+	beq $t3, $s0, FAPloopCercaGiocatore
 	
+	addi $t0, $t0, 1
+	j APloopCercaGiocatore
+
+	FAPloopCercaGiocatore:
+	jr $ra
+
+	EAPloopCercaGiocatore:
+	j AP
 	
+
+	APloopCercaTeam:
+	slti $t2, $t0, MaxTeams
+	beq $t2, $zero, EAPloopCercaTeam
+
+	mul $t2, $t0, TOff
+	add $t2, $t2, $t1
+	lw $t3, 0($t2)
+
+	beq $t3, $s1, FAPloopCercaTeam
 	
+	FAPloopCercaTeam:
+	move $s2, $t2
+	jr $ra
+
+	EAPloopCercaTeam:
+	j AP
 	
-	
-	
+	InsertPlayerSlot1:
+	sw $s0, TOffID1($s2)
+	j AP1
+
+	InsertPlayerSlot2:
+	sw $s0, TOffID2($s2)
+	j AP1
+
+	InsertPlayerSlot3:
+	sw $s0, TOffID3($s2)
+	j AP1
+
+	InsertPlayerSlot4:
+	sw $s0, TOffID4($s2)
+	j AP1
+
+	InsertPlayerSlot5:
+	sw $s0, TOffID5($s2)
+	j AP1
+
+
+	AP1:
+	li $v0, 4
+	la $a0, APDiag3
+	syscall
+
+	lw $ra, 0($sp)
+	jr $ra
+#========================================================================================
+
 	
 
 	
