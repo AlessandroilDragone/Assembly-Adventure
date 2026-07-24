@@ -4,15 +4,24 @@ Newline: .asciiz "\n"
 IDiag1: .asciiz "Ron costrui` una macchina del tempo, ma non aveva calcolato che, una volta utilizzata, si sarebbe incontrato con i suoi cloni, provenienti da universi paralleli"
 IDiag2: .asciiz "Inserisci un numero intero per i vari campi del videogioco"
 
+#ALL -1
 BufferInput: .byte 3
-.eqv MaxPlayers 20
-.eqv MaxTeams 20
-.eqv MaxMatch 20
-.eqv MaxInit 20 
+.eqv MaxPlayers 21
+.eqv MaxTeams 21
+.eqv MaxMatch 21
+.eqv MaxInit 21
+.eqv MaxPlayersInTeam 6
+.eqv NumberIDDgit 5
 #Max Init deve corrispondere al numero massimo tra le costanti qua sopra. Al momento si puo` modificare fino a 25 elementi per gli array
 
 PBufferNickname: .byte 14
-.eqv NicknameChars 13
+.eqv PNicknameChars 14
+
+BufferID: .byte 5
+
+TBufferNickname: .byte 7
+.eqv TNicknameChars 7
+
 
 ArrayPlayer: .space 1000 #lascio 200 byte di margine per un incremento di elementi da poter inserire 
 .eqv POffID 0
@@ -55,7 +64,7 @@ ArrayMatch: .space 525
 .text
 .globl main
 main:
-jal InitialyzationArrays
+jal InitializationArrays
 
 li $v0, 4
 la $a0, IDiag1
@@ -72,7 +81,7 @@ syscall
 
 j InputSection
 
-	InitialyzationArrays:
+	InitializationArrays:
 	li $t0, 0
 	la $t1, ArrayPlayer
 	la $t2, ArrayTeam
@@ -128,26 +137,26 @@ j Sections
  
 
 Sections:
-#beq, $t0, 0, Database
-beq, $t0, 1, InsertPlayer
-#beq, $t0, 2, InsertTeam
-#beq, $t0, 3, AssignPlayer
-#beq, $t0, 4, PrintPlayers
-#beq, $t0, 5, PrintTeams
-#beq, $t0, 6, SearchPlayerID
-#beq, $t0, 7, SearchTeamName
-#beq, $t0, 8, DuelSim
-#beq, $t0, 9, MatchSim
-#beq, $t0, 10, RegisterMatch
-#beq, $t0, 11, PrintMatchHistory
-#beq, $t0, 12, PrintRankPlayerScore
-#beq, $t0, 13, PrintRankTeamWins
-#beq, $t0, 14, PrintStrongestPlayerScore
-#beq, $t0, 15, PrintStrongestTeamAttack
-#beq, $t0, 16, PrintMatchesWonTeam
-#beq, $t0, 17, PrintPlayerNotAssignedTeam
-#beq, $t0, 18, LogicalDeletionTeam
-#beq, $t0, 19, RecursiveSearchTeamRoaster
+#beq $t0, 0, Database
+beq $t0, 1, InsertPlayer
+#beq $t0, 2, InsertTeam
+#beq $t0, 3, AssignPlayer
+#beq $t0, 4, PrintPlayers
+#beq $t0, 5, PrintTeams
+#beq $t0, 6, SearchPlayerID
+#beq $t0, 7, SearchTeamName
+#beq $t0, 8, DuelSim
+#beq $t0, 9, MatchSim
+#beq $t0, 10, RegisterMatch
+#beq $t0, 11, PrintMatchHistory
+#beq $t0, 12, PrintRankPlayerScore
+#beq $t0, 13, PrintRankTeamWins
+#beq $t0, 14, PrintStrongestPlayerScore
+#beq $t0, 15, PrintStrongestTeamAttack
+#beq $t0, 16, PrintMatchesWonTeam
+#beq $t0, 17, PrintPlayerNotAssignedTeam
+#beq $t0, 18, LogicalDeletionTeam
+#beq $t0, 19, RecursiveSearchTeamRoaster
 
 #========================================================================================
 InsertPlayer:
@@ -224,7 +233,7 @@ FLoopCercaSpazioGiocatore:
 	
 	li $v0, 8
 	la $a0, PBufferNickname
-	la $a1, 13
+	li $a1, 14
 	syscall
 	
 	li $t0, 0
@@ -232,7 +241,7 @@ FLoopCercaSpazioGiocatore:
 	j LoopInsertNickname
 	
 	LoopInsertNickname:
-	slti $t2, $t0, NicknameChars
+	slti $t2, $t0,PNicknameChars
 	beq $t2, $zero, FLoopInsertNickname
 	
 	lb $t2, 0($t4)
@@ -248,8 +257,151 @@ FLoopCercaSpazioGiocatore:
 #========================================================================================
 
 #========================================================================================
+InsertTeam:
+jal IT
+j InputSection
+
+IT: 
+addi $sp, $sp, -4
+sw $ra, 0($sp)
+
+li $t0, 0
+la $t1, ArrayTeam
+j LoopCercaSpazioTeam
+
+LoopCercaSpazioTeam:
+slti $t2, $t0, MaxTeams
+beq $t2, $zero, ELoopCercaSpazioTeam
+
+mul $t2, $t0, TOff
+add $t2, $t2, $t1
+lw $t3, 0($t2)
+beq $t3, $zero, FLoopCercaSpazioTeam
+
+addi $t0, $t0, 1
+j LoopCercaSpazioTeam
+
+ELoopCercaSpazioTeam:
+	jr $ra
+
+FLoopCercaSpazioTeam:
+	move $s0, $t3
+
+	li $v0, 42
+	li $a1, 8999
+	syscall
+	move $t0, $a0
+	addi $t0, $t0, 1000
+	sw $t0, 0($s0)
+
+	sw $zero, TOffWin($s0)
+	sw $zero, TOffLos($s0)
+	sw $zero, TOffFlag($s0)
+
+	li $t0, 0
+	j LoopInsertIDs
+
+	LoopInsertIDs:
+	slti $t1, $t0, MaxPlayersInTeam
+	beq $t1, $zero, FLoopInsertIDs.InsertTeamNickname
+
+	li $v0, 5
+	syscall
+	move $s1, $v0
+
+	beq $v0, $zero, FLoopInsertIDs.InsertTeamNickname
+
+	li $t1, 0
+	la $t2, ArrayPlayer
+	jal CercaIDGiocatorePerTeam	
+
+	addi $t0, $t0, 1
+	j LoopInsertIDs
+
+	CercaIDGiocatorePerTeam:
+	slti $t3, $t1, MaxPlayers
+	beq $t3, $zero, LoopInsertIDs
+
+	mul $t3, $t1, POff
+	add $t3, $t3, $t2
+
+	lw $t4, 0($t3)
+	beq $s1, $t4, InserisciIDGiocatoreInTeam
+	
+	addi $t1, $t1, 1
+	j CercaIDGiocatore
+
+InserisciIDGiocatoreInTeam:
+	lw $t2, TOffID1($s0)
+	beq $t2, $zero, InserisciIDGiocatoreInTeam1
+
+	lw $t2, TOffID2($s0)
+	beq $t2, $zero, InserisciIDGiocatoreInTeam2
+
+	lw $t2, TOffID3($s0)
+	beq $t2, $zero, InserisciIDGiocatoreInTeam3
+
+	lw $t2, TOffID4($s0)
+	beq $t2, $zero, InserisciIDGiocatoreInTeam4
+
+	lw $t2, TOffID5($s0)
+	beq $t2, $zero, InserisciIDGiocatoreInTeam5
+
+InserisciIDGiocatoreInTeam1:
+	sw $s1, TOffID1($s0)
+	jr $ra
+
+InserisciIDGiocatoreInTeam2:
+	sw $s1, TOffID2($s0)
+	jr $ra
+
+InserisciIDGiocatoreInTeam3:
+	sw $s1, TOffID3($s0)
+	jr $ra
+
+InserisciIDGiocatoreInTeam4:
+	sw $s1, TOffID4($s0)
+	jr $ra
+
+InserisciIDGiocatoreInTeam5:
+	sw $s1, TOffID5($s0)
+	jr $ra
+
+
+FLoopInsertIDs.InsertTeamNickname:
+	li $v0, 8
+	la $a0, TBufferNickname
+	li $a1, 7
+
+	li $t0, 0
+	la $t1, ArrayTeam	
+	la $t2, TBufferNickname
+	j LoopInsertTeamNickname
+
+InsertTeamNickname:
+	slti $t3, $t0, TNicknameChars
+	beq $t3, $zero, FInsertTeamNickname
+
+	add $t3, $t1, $t0
+	add $t4, $t2, $t0
+	lb $t5, 0($t4)
+
+	sb $t5, 0($t3)
+	
+	addi $t0, $t0, 1
+	j InsertTeamNickname
+
+
+FInsertTeamNickname:
+	lw $ra, 0($sp)
+	jr $ra
+	
+
+
+	
 		
 
+	
 	
 	
 	
